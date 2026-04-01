@@ -78,13 +78,19 @@ export const renderHome = (container) => {
   const tbody = document.getElementById('inventory-tbody');
   const statusPill = document.getElementById('system-status');
 
-  // Fetch items that are currently "STORED"
-  const q = query(collection(db, "inventory"), where("type", "==", "STORE"), orderBy("timestamp", "desc"));
+  // Fetch all items from the collection (simplified to avoid Missing Index errors)
+  const q = collection(db, "inventory");
   
   onSnapshot(q, (snapshot) => {
+    // 1. Sort and Filter in JavaScript (More robust than Firestore queries)
+    const items = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(item => item.type === 'STORE')
+      .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
     tbody.innerHTML = '';
     
-    if (snapshot.empty) {
+    if (items.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
@@ -93,16 +99,15 @@ export const renderHome = (container) => {
         </tr>
       `;
     } else {
-      snapshot.forEach((doc) => {
-        const item = doc.data();
+      items.forEach((item) => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid var(--border-dim)';
         tr.style.fontSize = '0.85rem';
         
         tr.innerHTML = `
           <td style="padding: 1.25rem 0;">
-            <div style="font-weight: bold; color: #fff;">ID: ${item.email.split('@')[0]}</div>
-            <div style="font-size: 0.7rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleString() || 'Pending...'}</div>
+            <div style="font-weight: bold; color: #fff;">ID: ${item.email?.split('@')[0] || 'Unknown'}</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleString() || 'Recent'}</div>
           </td>
           <td style="padding: 1.25rem 0;">
             <span style="color: var(--cyan-primary); background: rgba(0, 225, 255, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">SECURED</span>
@@ -118,6 +123,7 @@ export const renderHome = (container) => {
     statusPill.classList.remove('animate-pulse');
   }, (error) => {
     console.error("Firestore error:", error);
+    alert("Connection Error: " + error.message);
     statusPill.textContent = 'Connection Error';
     statusPill.style.color = '#ef4444';
   });
