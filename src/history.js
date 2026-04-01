@@ -65,12 +65,17 @@ export const renderHistory = (container) => {
   const statusPill = document.getElementById('history-status');
 
   // Fetch all transactions/inventory events
-  const q = query(collection(db, "inventory"), orderBy("timestamp", "desc"));
+  const q = collection(db, "inventory");
   
   onSnapshot(q, (snapshot) => {
+    // Sort in JavaScript to avoid Firestore Index requirements
+    const items = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
     tbody.innerHTML = '';
     
-    if (snapshot.empty) {
+    if (items.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
@@ -79,8 +84,7 @@ export const renderHistory = (container) => {
         </tr>
       `;
     } else {
-      snapshot.forEach((doc) => {
-        const item = doc.data();
+      items.forEach((item) => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid var(--border-dim)';
         tr.style.fontSize = '0.8rem';
@@ -89,7 +93,7 @@ export const renderHistory = (container) => {
         
         tr.innerHTML = `
           <td style="padding: 1.25rem 0;">
-            <div style="font-weight: bold; color: #fff;">ID: ${item.email.split('@')[0]}</div>
+            <div style="font-weight: bold; color: #fff;">ID: ${item.email?.split('@')[0] || 'Unknown'}</div>
             <div style="font-size: 0.65rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleDateString() || 'Recent'}</div>
           </td>
           <td style="padding: 1.25rem 0;">
@@ -99,7 +103,7 @@ export const renderHistory = (container) => {
           </td>
           <td style="padding: 1.25rem 0;">
             <div style="font-size: 0.7rem; color: var(--text-dim);">STATION-01</div>
-            <div style="font-size: 0.6rem; opacity: 0.5;">HASH: ${doc.id.substring(0, 8)}</div>
+            <div style="font-size: 0.6rem; opacity: 0.5;">HASH: ${item.id.substring(0, 8)}</div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -108,6 +112,7 @@ export const renderHistory = (container) => {
     statusPill.textContent = 'Archive Sync Online';
   }, (error) => {
     console.error("Firestore history error:", error);
+    alert("History Sync Error: " + error.message);
     statusPill.textContent = 'Sync Failed';
   });
 }
