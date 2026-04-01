@@ -31,6 +31,7 @@ export const renderHistory = (container) => {
           <table class="data-table" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="text-align: left; font-size: 0.75rem; color: var(--text-dim);">
+                <th style="padding: 1rem 0;">Preview</th>
                 <th style="padding: 1rem 0;">Identification</th>
                 <th style="padding: 1rem 0;">Temporal Status</th>
                 <th style="padding: 1rem 0;">Metadata</th>
@@ -38,7 +39,7 @@ export const renderHistory = (container) => {
             </thead>
             <tbody id="claimed-tbody">
               <tr id="empty-state">
-                <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
+                <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
                   History archive synchronization active. No records found.
                 </td>
               </tr>
@@ -78,7 +79,7 @@ export const renderHistory = (container) => {
     if (items.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
+          <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
             History archive synchronization active. No records found.
           </td>
         </tr>
@@ -92,6 +93,11 @@ export const renderHistory = (container) => {
         const isStore = item.type === 'STORE';
         
         tr.innerHTML = `
+          <td style="padding: 1rem 0;">
+            <div style="width: 40px; height: 40px; background: #000; border: 1px solid var(--purple-glow); border-radius: 4px; overflow: hidden;">
+              ${item.image ? `<img src="${item.image}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">` : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 0.4rem; color: var(--text-dim);">No IMG</div>`}
+            </div>
+          </td>
           <td style="padding: 1.25rem 0;">
             <div style="font-weight: bold; color: #fff;">ID: ${item.email?.split('@')[0] || 'Unknown'}</div>
             <div style="font-size: 0.65rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleDateString() || 'Recent'}</div>
