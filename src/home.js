@@ -31,6 +31,7 @@ export const renderHome = (container) => {
           <table class="data-table" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="text-align: left; font-size: 0.75rem; color: var(--text-dim);">
+                <th style="padding: 1rem 0;">Preview</th>
                 <th style="padding: 1rem 0;">Identification</th>
                 <th style="padding: 1rem 0;">Status</th>
                 <th style="padding: 1rem 0;">Action</th>
@@ -38,7 +39,7 @@ export const renderHome = (container) => {
             </thead>
             <tbody id="inventory-tbody">
               <tr id="loading-state">
-                <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
+                <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
                   Searching the storage matrix...
                 </td>
               </tr>
@@ -93,7 +94,7 @@ export const renderHome = (container) => {
     if (items.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
+          <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
             No assets currently secured in the storage matrix.
           </td>
         </tr>
@@ -105,6 +106,11 @@ export const renderHome = (container) => {
         tr.style.fontSize = '0.85rem';
         
         tr.innerHTML = `
+          <td style="padding: 1rem 0;">
+            <div style="width: 50px; height: 50px; background: #000; border: 1px solid var(--border-cyan); border-radius: 4px; overflow: hidden;">
+              ${item.image ? `<img src="${item.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 0.5rem; color: var(--text-dim);">No IMG</div>`}
+            </div>
+          </td>
           <td style="padding: 1.25rem 0;">
             <div style="font-weight: bold; color: #fff;">ID: ${item.email?.split('@')[0] || 'Unknown'}</div>
             <div style="font-size: 0.7rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleString() || 'Recent'}</div>
@@ -119,6 +125,7 @@ export const renderHome = (container) => {
         tbody.appendChild(tr);
       });
     }
+
     statusPill.textContent = 'System Online';
     statusPill.classList.remove('animate-pulse');
   }, (error) => {
