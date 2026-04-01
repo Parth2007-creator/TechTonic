@@ -1,3 +1,6 @@
+import { db } from './firebase.js';
+import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
+
 export const renderHome = (container) => {
   container.innerHTML = `
     <header class="header">
@@ -21,7 +24,7 @@ export const renderHome = (container) => {
       <section class="glass card glass-cyan" style="margin-bottom: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
           <h2 class="font-head" style="font-size: 1rem; color: var(--cyan-primary);">AVAILABLE LOST ITEMS</h2>
-          <span class="status-pill animate-pulse" style="border: 1px solid var(--green-status); color: var(--green-status); background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">System Online</span>
+          <span id="system-status" class="status-pill animate-pulse" style="border: 1px solid var(--green-status); color: var(--green-status); background: rgba(16, 185, 129, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Syncing...</span>
         </div>
 
         <div id="inventory-list">
@@ -34,9 +37,9 @@ export const renderHome = (container) => {
               </tr>
             </thead>
             <tbody id="inventory-tbody">
-              <tr id="empty-state">
+              <tr id="loading-state">
                 <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
-                  No assets currently secured in the storage matrix.
+                  Searching the storage matrix...
                 </td>
               </tr>
             </tbody>
@@ -67,8 +70,55 @@ export const renderHome = (container) => {
         support@smartstation.campus
       </p>
       <div style="margin-top: 3rem; font-size: 0.75rem; color: var(--text-dim); opacity: 0.7; text-align: center;">
-        © 2026 SmartStation. Powered by advanced IoT technology.
+        ©️ 2026 SmartStation. Powered by advanced IoT technology.
       </div>
     </footer>
   `
+
+  const tbody = document.getElementById('inventory-tbody');
+  const statusPill = document.getElementById('system-status');
+
+  // Fetch items that are currently "STORED"
+  const q = query(collection(db, "inventory"), where("type", "==", "STORE"), orderBy("timestamp", "desc"));
+  
+  onSnapshot(q, (snapshot) => {
+    tbody.innerHTML = '';
+    
+    if (snapshot.empty) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.9rem;">
+            No assets currently secured in the storage matrix.
+          </td>
+        </tr>
+      `;
+    } else {
+      snapshot.forEach((doc) => {
+        const item = doc.data();
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border-dim)';
+        tr.style.fontSize = '0.85rem';
+        
+        tr.innerHTML = `
+          <td style="padding: 1.25rem 0;">
+            <div style="font-weight: bold; color: #fff;">ID: ${item.email.split('@')[0]}</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleString() || 'Pending...'}</div>
+          </td>
+          <td style="padding: 1.25rem 0;">
+            <span style="color: var(--cyan-primary); background: rgba(0, 225, 255, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">SECURED</span>
+          </td>
+          <td style="padding: 1.25rem 0;">
+            <a href="#/portal" style="color: var(--cyan-primary); text-decoration: none; font-weight: bold; font-size: 0.75rem;">CLAIM > </a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    statusPill.textContent = 'System Online';
+    statusPill.classList.remove('animate-pulse');
+  }, (error) => {
+    console.error("Firestore error:", error);
+    statusPill.textContent = 'Connection Error';
+    statusPill.style.color = '#ef4444';
+  });
 }
