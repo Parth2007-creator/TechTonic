@@ -111,18 +111,22 @@ export const renderDashboard = (container) => {
   }
 
   // Real-time stats fetching
-  const q = query(collection(db, "inventory"), orderBy("timestamp", "desc"), limit(50));
+  const q = collection(db, "inventory");
   
   onSnapshot(q, (snapshot) => {
     let total = 0;
     let stored = 0;
     let retrieved = 0;
-    const historyData = snapshot.docs.map(doc => doc.data());
     
-    snapshot.forEach(doc => {
+    // Sort items in JS for the chart trends
+    const items = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+    items.forEach(item => {
       total++;
-      if (doc.data().type === 'STORE') stored++;
-      if (doc.data().type === 'RETRIEVE') retrieved++;
+      if (item.type === 'STORE') stored++;
+      if (item.type === 'RETRIEVE') retrieved++;
     });
 
     // Update Cards
@@ -135,10 +139,12 @@ export const renderDashboard = (container) => {
     if (rEl) rEl.textContent = retrieved.toString().padStart(3, '0');
 
     // Simple trend logic: grouping by days (simplified for this view)
-    // We'll just show the last 7 items spread across a dummy weekly view if no full history
     const dummyTrend = [stored, retrieved, total, stored + 2, total - 1, stored + 1, total];
     initChart(dummyTrend);
 
+  }, (error) => {
+    console.error("Dashboard error:", error);
+    alert("Dashboard Sync Error: " + error.message);
   });
 
   // Initial empty chart
