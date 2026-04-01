@@ -1,3 +1,6 @@
+import { db } from './firebase.js';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+
 export const renderHistory = (container) => {
   container.innerHTML = `
     <header class="header">
@@ -21,7 +24,7 @@ export const renderHistory = (container) => {
       <section class="glass card" style="border-left: 4px solid var(--purple-secondary); padding: 1.5rem; border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
           <h2 class="font-head" style="font-size: 1rem; color: var(--purple-secondary);">CLAIMED ITEMS HISTORY</h2>
-          <span class="status-pill" style="border: 1px solid var(--purple-secondary); color: var(--purple-secondary); background: rgba(168, 85, 247, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Archive Read-Only</span>
+          <span id="history-status" class="status-pill" style="border: 1px solid var(--purple-secondary); color: var(--purple-secondary); background: rgba(168, 85, 247, 0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Syncing Archive...</span>
         </div>
 
         <div id="claimed-list">
@@ -53,8 +56,58 @@ export const renderHistory = (container) => {
       
       <h3 style="margin-top: 2rem;">STATION INFO</h3>
       <p style="margin-top: 3rem; font-size: 0.75rem; color: var(--text-dim); opacity: 0.7; text-align: center;">
-        © 2026 SmartStation. Powered by advanced IoT technology.
+        ©️ 2026 SmartStation. Powered by advanced IoT technology.
       </p>
     </footer>
   `
+
+  const tbody = document.getElementById('claimed-tbody');
+  const statusPill = document.getElementById('history-status');
+
+  // Fetch all transactions/inventory events
+  const q = query(collection(db, "inventory"), orderBy("timestamp", "desc"));
+  
+  onSnapshot(q, (snapshot) => {
+    tbody.innerHTML = '';
+    
+    if (snapshot.empty) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 4rem 1rem; font-size: 0.85rem;">
+            History archive synchronization active. No records found.
+          </td>
+        </tr>
+      `;
+    } else {
+      snapshot.forEach((doc) => {
+        const item = doc.data();
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border-dim)';
+        tr.style.fontSize = '0.8rem';
+        
+        const isStore = item.type === 'STORE';
+        
+        tr.innerHTML = `
+          <td style="padding: 1.25rem 0;">
+            <div style="font-weight: bold; color: #fff;">ID: ${item.email.split('@')[0]}</div>
+            <div style="font-size: 0.65rem; color: var(--text-dim);">${item.timestamp?.toDate().toLocaleDateString() || 'Recent'}</div>
+          </td>
+          <td style="padding: 1.25rem 0;">
+            <span style="color: ${isStore ? 'var(--cyan-primary)' : 'var(--purple-secondary)'}; font-weight: bold;">
+              ${isStore ? 'STORED' : 'RETRIEVED'}
+            </span>
+          </td>
+          <td style="padding: 1.25rem 0;">
+            <div style="font-size: 0.7rem; color: var(--text-dim);">STATION-01</div>
+            <div style="font-size: 0.6rem; opacity: 0.5;">HASH: ${doc.id.substring(0, 8)}</div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    statusPill.textContent = 'Archive Sync Online';
+  }, (error) => {
+    console.error("Firestore history error:", error);
+    statusPill.textContent = 'Sync Failed';
+  });
 }
